@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+
+build/
+dist/
+tk_pack_test_tcl8.6/
+tk_pack_test_tk8.6/
+
+mosaic_outputs/
+*.spec
+
+.venv/
+venv/
+env/
+.idea/
+.vscode/

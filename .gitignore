@@ -3,11 +3,15 @@ __pycache__/
 
 build/
 dist/
+build_fixed/
+dist_fixed/
+spec_fixed/
 tk_pack_test_tcl8.6/
 tk_pack_test_tk8.6/
 
 mosaic_outputs/
 *.spec
+*_修复版.zip
 
 .venv/
 venv/

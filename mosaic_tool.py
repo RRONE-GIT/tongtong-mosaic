@@ -152,10 +152,18 @@ class MosaicTool:
             messagebox.showerror(APP_NAME, "找不到 ffmpeg 视频处理组件。")
             return
 
+        settings = {
+            "frame_count": max(2, int(self.count_var.get())),
+            "size": max(120, int(self.size_var.get())),
+            "block": max(2, int(self.block_var.get())),
+        }
+
+        self.clear_queue()
         self.stop_preview()
         self.preview_photos = []
         self.preview_paths = []
         self.current_preview_image = None
+        self.preview_label.configure(image="")
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_stem = "".join(ch if ch.isalnum() else "_" for ch in video.stem)[:40] or "video"
         self.output_dir = OUTPUT_ROOT / f"{safe_stem}_{stamp}"
@@ -172,16 +180,16 @@ class MosaicTool:
         self.progress.configure(value=0)
         self.status_var.set("正在处理...")
 
-        thread = threading.Thread(target=self.process_video, args=(video,), daemon=True)
+        thread = threading.Thread(target=self.process_video, args=(video, settings), daemon=True)
         thread.start()
 
-    def process_video(self, video):
+    def process_video(self, video, settings):
         try:
-            frame_count = max(2, int(self.count_var.get()))
+            frame_count = settings["frame_count"]
             self.queue_status("提取视频帧...", 5)
             self.extract_video_frames(video, frame_count)
             self.queue_status("生成马赛克帧...", 55)
-            self.make_mosaic_frames(frame_count)
+            self.make_mosaic_frames(settings["size"], settings["block"])
             self.msg_queue.put(("done", None))
         except Exception as exc:
             self.msg_queue.put(("error", str(exc)))
@@ -220,9 +228,7 @@ class MosaicTool:
         if saved == 0:
             raise RuntimeError("视频提帧失败，没有生成任何画面。")
 
-    def make_mosaic_frames(self, frame_count):
-        size = max(120, int(self.size_var.get()))
-        block = max(2, int(self.block_var.get()))
+    def make_mosaic_frames(self, size, block):
         small_size = max(8, size // block)
         source_paths = sorted(self.source_dir.glob("*.png"))
         total = len(source_paths)
@@ -332,6 +338,13 @@ class MosaicTool:
         if self.preview_after_id:
             self.root.after_cancel(self.preview_after_id)
             self.preview_after_id = None
+
+    def clear_queue(self):
+        try:
+            while True:
+                self.msg_queue.get_nowait()
+        except queue.Empty:
+            pass
 
     def queue_status(self, text, progress):
         self.msg_queue.put(("status", text, max(0, min(100, progress))))
